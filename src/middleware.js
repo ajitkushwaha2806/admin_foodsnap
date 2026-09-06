@@ -5,6 +5,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const publicRoutes = [
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/api/images/search(.*)",
   // Add any additional public pages or APIs here:
   // "/api/public(.*)",
 ];
