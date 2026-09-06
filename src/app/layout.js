@@ -1,6 +1,6 @@
 import "@/app/globals.css";
 import { Poppins } from "next/font/google";
-import { AppShell } from "@/components/layout/app-shell";
+import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/providers/query-provider";
 
 const poppins = Poppins({
@@ -17,12 +17,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`dark ${poppins.variable}`}>
-      <body className={`${poppins.className} font-sans antialiased bg-background text-foreground selection:bg-amber-500 selection:text-white`}>
-        <QueryProvider>
-          <AppShell>{children}</AppShell>
-        </QueryProvider>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`dark ${poppins.variable}`}>
+        <body
+          className={`${poppins.className} font-sans antialiased bg-background text-foreground selection:bg-amber-500 selection:text-white`}
+        >
+          <QueryProvider>{children}</QueryProvider>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

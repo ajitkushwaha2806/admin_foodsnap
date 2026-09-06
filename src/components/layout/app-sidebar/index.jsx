@@ -2,9 +2,22 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { ZomatoScraperPopover } from "@/components/zomato/scraper-popover";
 import { LayoutDashboard, Images, UtensilsCrossed, Layers, Sparkles } from "lucide-react";
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 
 const navItems = [
   {
@@ -33,6 +46,16 @@ const navItems = [
 
 export function AppSidebar({ ...props }) {
   const pathname = usePathname();
+  const { user, isLoaded } = useUser();
+
+  const userDisplayName =
+    user?.fullName ||
+    user?.firstName ||
+    user?.username ||
+    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+    "Admin";
+
+  const userEmail = user?.primaryEmailAddress?.emailAddress || "";
 
   return (
     <Sidebar collapsible="icon" className="border-r" {...props}>
@@ -66,8 +89,8 @@ export function AppSidebar({ ...props }) {
                       isActive={isActive}
                       tooltip={item.title}
                       className={`gap-3 py-2 px-3 rounded-lg font-medium transition-colors ${isActive
-                        ? "bg-primary text-primary-foreground font-semibold shadow-sm"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                          ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                          : "hover:bg-muted text-muted-foreground hover:text-foreground"
                         }`}
                     >
                       <Link href={item.url} className="flex items-center w-full">
@@ -100,9 +123,35 @@ export function AppSidebar({ ...props }) {
           </div>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="border-t p-2">
+        <div className="flex items-center gap-3 p-2 rounded-lg bg-sidebar-accent/50 hover:bg-sidebar-accent transition-colors">
+          <div className="shrink-0 flex items-center justify-center">
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: "w-8 h-8 rounded-lg",
+                  userButtonPopoverCard: "shadow-2xl border",
+                },
+              }}
+            />
+          </div>
+          <div className="flex flex-col min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+            <span className="text-xs font-semibold truncate text-foreground">
+              {isLoaded ? userDisplayName : "Loading..."}
+            </span>
+            {userEmail && (
+              <span className="text-[10px] text-muted-foreground truncate">
+                {userEmail}
+              </span>
+            )}
+          </div>
+        </div>
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
 }
 
 export default AppSidebar;
+
