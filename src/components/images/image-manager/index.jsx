@@ -1,22 +1,15 @@
 "use client";
-
-import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getImages } from "@/services/frontend/images";
-import { ImageCard } from "@/components/images/image-card";
-import { BulkUploadModal } from "@/components/images/bulk-upload-modal";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getImages } from "@/services/frontend/images";
+import { ImageCard } from "@/components/images/image-card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, RefreshCw, Image as ImageIcon, X, Sparkles, Upload } from "lucide-react";
+import { BulkUploadModal } from "@/components/images/bulk-upload-modal";
+import { Search, RefreshCw, Image as ImageIcon, X, Sparkles } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ImageManager() {
   const [searchInput, setSearchInput] = useState("");
@@ -54,9 +47,9 @@ export function ImageManager() {
           statusFilter === "approved"
             ? "true"
             : statusFilter === "pending"
-            ? "false"
-            : undefined,
-        foodType: foodTypeFilter !== "all" ? foodTypeFilter : undefined,
+              ? "false"
+              : undefined,
+        food_type: foodTypeFilter !== "all" ? foodTypeFilter : undefined,
         category: categoryFilter !== "all" ? categoryFilter : undefined,
         page,
         limit: 24,

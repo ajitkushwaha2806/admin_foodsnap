@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export async function getImages(params = {}) {
-  const response = await axios.get("/api/images", { params });
+  const response = await axios.get("/api/images/search", { params });
   return response.data;
 }
 
