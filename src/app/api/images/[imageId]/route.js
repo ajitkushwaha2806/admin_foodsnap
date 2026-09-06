@@ -1,81 +1,81 @@
 import dbConnect from "@/lib/dbConnect";
-import Image from "@/models/Image";
+import ImageModel from "@/models/Image";
 import { NextResponse } from "next/server";
 
-export const PUT = async (req, { params }) => {
+export async function GET(request, { params }) {
   try {
     await dbConnect();
     const { imageId } = await params;
 
-    console.log("Image ID to update:", imageId);
-    const image = await Image.findById(imageId);
-
+    const image = await ImageModel.findById(imageId);
     if (!image) {
       return NextResponse.json(
-        { message: "Image not found", success: false },
-        { status: 404 }
+        { success: false, error: "Image not found" },
+        { status: 400 }
       );
     }
 
-    const body = await req.json();
-    console.log("Request body:", body);
-
-    const updatedImage = await Image.findByIdAndUpdate(
-      imageId,
-      { $set: body },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedImage) {
-      return NextResponse.json(
-        { message: "Image not found", success: false },
-        { status: 404 }
-      );
-    }
-
-    console.log("Updated Image:", updatedImage);
-
+    return NextResponse.json({ success: true, data: image });
+  } catch (error) {
     return NextResponse.json(
-      {
-        message: "Image updated successfully",
-        success: true,
-        data: updatedImage,
-      },
-      { status: 200 }
-    );
-  } catch (err) {
-    return NextResponse.json(
-      {
-        message: "Internal Server Error",
-        success: false,
-        error: err.message,
-      },
+      { success: false, error: error.message },
       { status: 500 }
     );
   }
-};
+}
 
-export const GET = async (req, { params }) => {
+export async function PATCH(request, { params }) {
   try {
     await dbConnect();
     const { imageId } = await params;
-    console.log("Fetching image with ID:", imageId);
-    const image = await Image.findById(imageId);
-    if (!image) {
+    const body = await request.json();
+
+    const updated = await ImageModel.findByIdAndUpdate(imageId, body, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updated) {
       return NextResponse.json(
-        { message: "Image not found", success: false },
+        { success: false, error: "Image not found" },
         { status: 404 }
       );
     }
 
+    return NextResponse.json({
+      success: true,
+      message: "Image updated successfully",
+      data: updated,
+    });
+  } catch (error) {
     return NextResponse.json(
-      { message: "Image fetched successfully", success: true, data: image },
-      { status: 200 }
-    );
-  } catch (err) {
-    return NextResponse.json(
-      { message: "Internal Server Error", success: false, error: err.message },
+      { success: false, error: error.message },
       { status: 500 }
     );
   }
-};
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    await dbConnect();
+    const { imageId } = await params;
+
+    const deleted = await ImageModel.findByIdAndDelete(imageId);
+    if (!deleted) {
+      return NextResponse.json(
+        { success: false, error: "Image not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Image deleted successfully",
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
+  }
+}
