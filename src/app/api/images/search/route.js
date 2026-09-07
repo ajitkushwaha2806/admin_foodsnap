@@ -231,7 +231,9 @@ export async function GET(request) {
                     },
                     {
                         $project: {
-                            searchScore: 0,
+                            _id: 1,
+                            name: { $ifNull: ["$title", "$name"] },
+                            image_url: 1,
                         },
                     },
                 ],
