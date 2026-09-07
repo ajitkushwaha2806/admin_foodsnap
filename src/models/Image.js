@@ -46,6 +46,8 @@ ImageSchema.index(
 );
 
 ImageSchema.index({ approved: 1, premium: 1 });
+ImageSchema.index({ latest: 1 });
+ImageSchema.index({ approved: 1, latest: 1 });
 
 const Image = mongoose.models.Image || mongoose.model("Image", ImageSchema);
 

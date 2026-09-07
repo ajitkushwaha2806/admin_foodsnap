@@ -10,12 +10,19 @@ export async function GET(request) {
     const search = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
     const dietaryType = searchParams.get("dietaryType") || "";
+    const ids = searchParams.get("ids") || "";
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const skip = (page - 1) * limit;
 
     const query = {};
 
+    if (ids) {
+      const idArray = ids.split(",").map((id) => id.trim()).filter(Boolean);
+      if (idArray.length > 0) {
+        query._id = { $in: idArray };
+      }
+    }
     if (search) {
       query.name = { $regex: search, $options: "i" };
     }

@@ -9,8 +9,10 @@ export async function GET(request) {
 
     const search = searchParams.get("search") || "";
     const approved = searchParams.get("approved");
-    const foodType = searchParams.get("foodType");
+    const foodType = searchParams.get("foodType") || searchParams.get("food_type");
     const category = searchParams.get("category");
+    const latest = searchParams.get("latest");
+    const premium = searchParams.get("premium");
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "60", 10);
     const skip = (page - 1) * limit;
@@ -27,6 +29,14 @@ export async function GET(request) {
 
     if (approved !== null && approved !== undefined && approved !== "" && approved !== "all") {
       query.approved = approved === "true";
+    }
+
+    if (latest !== null && latest !== undefined && latest !== "" && latest !== "all") {
+      query.latest = latest === "true";
+    }
+
+    if (premium !== null && premium !== undefined && premium !== "" && premium !== "all") {
+      query.premium = premium === "true";
     }
 
     if (foodType && foodType !== "all") {

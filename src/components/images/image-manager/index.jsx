@@ -17,6 +17,7 @@ export function ImageManager() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [foodTypeFilter, setFoodTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [latestFilter, setLatestFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
@@ -37,6 +38,7 @@ export function ImageManager() {
         statusFilter,
         foodTypeFilter,
         categoryFilter,
+        latestFilter,
         page,
       },
     ],
@@ -51,6 +53,12 @@ export function ImageManager() {
               : undefined,
         food_type: foodTypeFilter !== "all" ? foodTypeFilter : undefined,
         category: categoryFilter !== "all" ? categoryFilter : undefined,
+        latest:
+          latestFilter === "latest"
+            ? "true"
+            : latestFilter === "not_latest"
+              ? "false"
+              : undefined,
         page,
         limit: 24,
       }),
@@ -67,6 +75,7 @@ export function ImageManager() {
     setStatusFilter("all");
     setFoodTypeFilter("all");
     setCategoryFilter("all");
+    setLatestFilter("all");
     setPage(1);
   };
 
@@ -74,7 +83,8 @@ export function ImageManager() {
     debouncedSearch ||
     statusFilter !== "all" ||
     foodTypeFilter !== "all" ||
-    categoryFilter !== "all";
+    categoryFilter !== "all" ||
+    latestFilter !== "all";
 
   return (
     <div className="space-y-5">
@@ -132,6 +142,23 @@ export function ImageManager() {
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="veg">🌱 Veg</SelectItem>
               <SelectItem value="non-veg">🍗 Non-Veg</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={latestFilter}
+            onValueChange={(val) => {
+              setLatestFilter(val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-32 h-9 text-xs">
+              <SelectValue placeholder="Latest" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Items</SelectItem>
+              <SelectItem value="latest">✨ Latest Only</SelectItem>
+              <SelectItem value="not_latest">Standard Only</SelectItem>
             </SelectContent>
           </Select>
 

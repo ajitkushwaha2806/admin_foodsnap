@@ -71,7 +71,7 @@ export function ImageSheet({ image, children, onUpdated }) {
             alt={formData.title || formData.name || "Food preview"}
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
             <Badge
               variant={formData.approved ? "default" : "secondary"}
               className={
@@ -82,6 +82,12 @@ export function ImageSheet({ image, children, onUpdated }) {
             >
               {formData.approved ? "Approved" : "Pending Review"}
             </Badge>
+            {formData.latest && (
+              <Badge className="bg-blue-600 hover:bg-blue-600 text-white shadow-sm flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                Latest
+              </Badge>
+            )}
             {formData.premium && (
               <Badge className="bg-amber-500 hover:bg-amber-500 text-white">
                 Premium
@@ -203,6 +209,21 @@ export function ImageSheet({ image, children, onUpdated }) {
                 className="text-xs font-medium cursor-pointer"
               >
                 Mark as Approved for Production
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="latest-status"
+                checked={formData.latest || false}
+                onCheckedChange={(val) => handleChange("latest", !!val)}
+              />
+              <Label
+                htmlFor="latest-status"
+                className="text-xs font-medium cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Mark as Latest</span>
+                <span className="text-[10px] text-muted-foreground font-normal">(Featured in Latest filter & collection)</span>
               </Label>
             </div>
 

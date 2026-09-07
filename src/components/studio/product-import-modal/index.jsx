@@ -37,22 +37,26 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dietaryFilter, setDietaryFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(24);
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["products-for-studio", { search, categoryFilter, dietaryFilter }],
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["products-for-studio", { search, categoryFilter, dietaryFilter, page, limit }],
     queryFn: () =>
       getProducts({
         search: search || undefined,
         category: categoryFilter !== "all" ? categoryFilter : undefined,
         dietaryType: dietaryFilter !== "all" ? dietaryFilter : undefined,
-        page: 1,
-        limit: 100,
+        page,
+        limit,
       }),
     enabled: isOpen,
   });
 
   const products = data?.data || [];
+  const totalPages = data?.pagination?.totalPages || 1;
+  const totalCount = data?.pagination?.total || 0;
   const categories = data?.categories || [];
 
   const toggleSelect = (id) => {
@@ -64,12 +68,19 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
     });
   };
 
-  const toggleSelectAll = () => {
-    if (selectedIds.size === products.length && products.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(products.map((p) => p._id)));
-    }
+  const toggleSelectPage = () => {
+    const pageIds = products.map((p) => p._id);
+    const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
   };
 
   const handleQueueSelected = () => {
@@ -93,6 +104,9 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
     onClose();
   };
 
+  const isPageFullySelected =
+    products.length > 0 && products.every((p) => selectedIds.has(p._id));
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
@@ -109,24 +123,33 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
             />
           </div>
           <DialogDescription>
-            Select scraped dishes from your database to load into the AI processor queue.
+            Select scraped dishes from your database to load into the AI processor queue in batches.
           </DialogDescription>
         </DialogHeader>
 
         {/* Filters and Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 py-2 border-b">
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
-            <div className="relative flex-1 max-w-xs">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-1 flex-wrap">
+            <div className="relative flex-1 min-w-[160px] max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
                 placeholder="Search scraped items..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 className="pl-8 h-8 text-xs"
               />
             </div>
 
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select
+              value={categoryFilter}
+              onValueChange={(val) => {
+                setCategoryFilter(val);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="h-8 text-xs w-[130px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -140,7 +163,13 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
               </SelectContent>
             </Select>
 
-            <Select value={dietaryFilter} onValueChange={setDietaryFilter}>
+            <Select
+              value={dietaryFilter}
+              onValueChange={(val) => {
+                setDietaryFilter(val);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="h-8 text-xs w-[100px]">
                 <SelectValue placeholder="Diet" />
               </SelectTrigger>
@@ -151,37 +180,56 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
                 <SelectItem value="egg">Egg</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select
+              value={String(limit)}
+              onValueChange={(val) => {
+                setLimit(Number(val));
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs w-[100px]">
+                <SelectValue placeholder="Limit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="12">12 / page</SelectItem>
+                <SelectItem value="24">24 / page</SelectItem>
+                <SelectItem value="48">48 / page</SelectItem>
+                <SelectItem value="100">100 / page</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="ghost"
               size="sm"
-              onClick={toggleSelectAll}
+              onClick={toggleSelectPage}
               className="text-xs h-8 gap-1.5"
             >
-              {selectedIds.size === products.length && products.length > 0 ? (
+              {isPageFullySelected ? (
                 <CheckSquare className="h-3.5 w-3.5 text-orange-500" />
               ) : (
                 <Square className="h-3.5 w-3.5 text-muted-foreground" />
               )}
-              Select All ({products.length})
+              {isPageFullySelected ? "Deselect Page" : `Select Page (${products.length})`}
             </Button>
 
             <Button
               variant="ghost"
               size="icon"
               onClick={() => refetch()}
+              disabled={isFetching}
               className="h-8 w-8"
               title="Refresh list"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
 
         {/* Products Grid */}
-        <div className="flex-1 overflow-y-auto py-2 min-h-[300px] max-h-[420px] pr-1">
+        <div className="flex-1 overflow-y-auto py-2 min-h-[300px] max-h-[400px] pr-1">
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {[...Array(8)].map((_, i) => (
@@ -266,9 +314,41 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
           )}
         </div>
 
+        {/* Modal Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center px-1 py-1 border-t text-xs text-muted-foreground">
+            <span>
+              Showing {products.length} of {totalCount} dishes
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={page <= 1 || isFetching}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <span>
+                {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={page >= totalPages || isFetching}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+
         <DialogFooter className="border-t pt-3 flex flex-row items-center justify-between">
           <span className="text-xs text-muted-foreground">
-            {selectedIds.size} of {products.length} selected
+            {selectedIds.size} dish{selectedIds.size === 1 ? "" : "es"} selected
           </span>
 
           <div className="flex items-center gap-2">
@@ -290,3 +370,5 @@ export function ProductImportModal({ isOpen, onClose, onImportToStudio }) {
     </Dialog>
   );
 }
+
+

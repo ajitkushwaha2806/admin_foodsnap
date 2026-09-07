@@ -4,13 +4,14 @@ import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, X, Edit2, Trash2 } from "lucide-react";
 import { ImageSheet } from "@/components/images/image-sheet";
+import { Check, X, Edit2, Trash2, Sparkles } from "lucide-react";
 import { updateImage, deleteImage } from "@/services/frontend/images";
 
 export function ImageCard({ image, onRefresh }) {
   const [loading, setLoading] = useState(false);
   const isApproved = image?.approved;
+  const isLatest = image?.latest;
 
   const handleToggleApproval = async (e) => {
     e.stopPropagation();
@@ -23,6 +24,22 @@ export function ImageCard({ image, onRefresh }) {
       if (onRefresh) onRefresh();
     } catch (err) {
       toast.error("Failed to update status");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleLatest = async (e) => {
+    e.stopPropagation();
+    try {
+      setLoading(true);
+      await updateImage(image._id, { latest: !isLatest });
+      toast.success(
+        !isLatest ? "Image marked as Latest" : "Image removed from Latest"
+      );
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      toast.error("Failed to update latest status");
     } finally {
       setLoading(false);
     }
@@ -65,6 +82,16 @@ export function ImageCard({ image, onRefresh }) {
               {isApproved ? "Approved" : "Pending"}
             </Badge>
 
+            {isLatest && (
+              <Badge
+                variant="default"
+                className="text-[10px] px-1.5 py-0.5 font-semibold backdrop-blur-md shadow-sm bg-blue-600/90 hover:bg-blue-600 text-white flex items-center gap-0.5"
+              >
+                <Sparkles className="w-2.5 h-2.5" />
+                Latest
+              </Badge>
+            )}
+
             {image?.food_type && image.food_type !== "unknown" && (
               <Badge
                 variant="outline"
@@ -88,6 +115,16 @@ export function ImageCard({ image, onRefresh }) {
               title={isApproved ? "Revoke Approval" : "Approve Image"}
             >
               {isApproved ? <X className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+            </Button>
+            <Button
+              size="icon"
+              variant={isLatest ? "default" : "outline"}
+              className={`w-7 h-7 ${isLatest ? "bg-blue-600 hover:bg-blue-700 text-white border-blue-600" : ""}`}
+              onClick={handleToggleLatest}
+              disabled={loading}
+              title={isLatest ? "Remove from Latest" : "Mark as Latest"}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
             </Button>
             <Button
               size="icon"

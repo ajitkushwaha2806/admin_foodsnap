@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useMemo } from "react";
 import {
   UploadCloud,
   ImageIcon,
@@ -9,10 +9,20 @@ import {
   AlertCircle,
   Loader2,
   UtensilsCrossed,
+  Search,
+  Filter,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatBytes } from "@/lib/utils";
 
 export function SubjectBatchUpload({
@@ -24,6 +34,31 @@ export function SubjectBatchUpload({
   isProcessing,
 }) {
   const fileInputRef = useRef(null);
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterSearch, setFilterSearch] = useState("");
+
+  const categories = useMemo(() => {
+    const set = new Set();
+    items.forEach((item) => {
+      if (item.category) set.add(item.category);
+    });
+    return Array.from(set).filter(Boolean);
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      if (filterCategory !== "all" && item.category !== filterCategory) {
+        return false;
+      }
+      if (filterSearch) {
+        const query = filterSearch.toLowerCase();
+        const matchesName = item.name?.toLowerCase().includes(query);
+        const matchesCategory = item.category?.toLowerCase().includes(query);
+        if (!matchesName && !matchesCategory) return false;
+      }
+      return true;
+    });
+  }, [items, filterCategory, filterSearch]);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -123,10 +158,41 @@ export function SubjectBatchUpload({
           </div>
         </div>
 
+        {/* Filter Toolbar when items exist */}
+        {items.length > 4 && (
+          <div className="flex items-center gap-2 pt-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Filter queue by dish name..."
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                className="pl-8 h-7 text-xs"
+              />
+            </div>
+
+            {categories.length > 0 && (
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="h-7 text-xs w-[140px]">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories ({items.length})</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat} ({items.filter((i) => i.category === cat).length})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
+
         {/* Uploaded Grid List */}
         {items.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-[440px] overflow-y-auto pr-1">
-            {items.map((item, index) => {
+            {filteredItems.map((item, index) => {
               const statusBadges = {
                 idle: (
                   <Badge variant="secondary" className="text-[9px] py-0 px-1">

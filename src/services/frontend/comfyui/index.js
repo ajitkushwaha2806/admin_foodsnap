@@ -85,6 +85,14 @@ export class ComfyUIService {
   }
 
   /**
+   * Alias for getImageUrl
+   */
+  static getViewImageUrl(filename, subfolder = "", type = "output", serverUrl = "http://127.0.0.1:8188", useProxy = true) {
+    return this.getImageUrl(filename, subfolder, type, serverUrl, useProxy);
+  }
+
+
+  /**
    * Start ComfyUI process with low-RAM optimizations
    */
   static async startServer() {

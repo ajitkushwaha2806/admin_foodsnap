@@ -9,8 +9,8 @@ const getFilterValue = (searchParams, key, type = "string") => {
     }
 
     if (type === "boolean") {
-        if (value === "true") return true;
-        if (value === "false") return false;
+        if (value === "true" || value === "1" || value === "yes" || value === true) return true;
+        if (value === "false" || value === "0" || value === "no" || value === false) return false;
         return undefined;
     }
 
@@ -51,7 +51,7 @@ export async function GET(request) {
         const skip = (page - 1) * limit;
         const approved = getFilterValue(searchParams, "approved", "boolean");
         const category = getFilterValue(searchParams, "category", "string");
-        const foodType = getFilterValue(searchParams, "food_type", "string");
+        const foodType = getFilterValue(searchParams, "food_type", "string") || getFilterValue(searchParams, "foodType", "string");
 
         const atlasFilters = [];
         if (approved !== undefined) {
