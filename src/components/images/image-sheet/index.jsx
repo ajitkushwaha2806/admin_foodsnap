@@ -18,6 +18,10 @@ export function ImageSheet({ image, children, onUpdated }) {
   const [saving, setSaving] = useState(false);
   const [tagInput, setTagInput] = useState("");
 
+  React.useEffect(() => {
+    setFormData(image || {});
+  }, [image]);
+
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };

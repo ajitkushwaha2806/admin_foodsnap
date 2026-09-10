@@ -1,17 +1,26 @@
+import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
 import ImageModel from "@/models/Image";
 import { NextResponse } from "next/server";
+import { invalidateSearchCache } from "@/lib/redis";
 
 export async function GET(request, { params }) {
   try {
-    await dbConnect();
     const { imageId } = await params;
 
-    const image = await ImageModel.findById(imageId);
+    if (!imageId || !mongoose.Types.ObjectId.isValid(imageId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid Image ID format" },
+        { status: 400 }
+      );
+    }
+
+    await dbConnect();
+    const image = await ImageModel.findById(imageId).lean();
     if (!image) {
       return NextResponse.json(
         { success: false, error: "Image not found" },
-        { status: 400 }
+        { status: 404 }
       );
     }
 
@@ -42,6 +51,9 @@ export async function PATCH(request, { params }) {
       );
     }
 
+    // Invalidate Redis search cache so searches reflect changes immediately
+    await invalidateSearchCache();
+
     return NextResponse.json({
       success: true,
       message: "Image updated successfully",
@@ -67,6 +79,9 @@ export async function DELETE(request, { params }) {
         { status: 404 }
       );
     }
+
+    // Invalidate Redis search cache so deleted images don't appear in search
+    await invalidateSearchCache();
 
     return NextResponse.json({
       success: true,

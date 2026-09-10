@@ -6,8 +6,9 @@ const publicRoutes = [
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/images/search(.*)",
-  // Add any additional public pages or APIs here:
-  // "/api/public(.*)",
+  "/api/auth/(.*)",
+  "/api/login(.*)",
+  "/api/register(.*)",
 ];
 
 const isPublicRoute = createRouteMatcher(publicRoutes);
@@ -18,7 +19,14 @@ export default clerkMiddleware(async (auth, request) => {
     const { userId, redirectToSignIn } = await auth();
     if (!userId) {
       if (request.nextUrl.pathname.startsWith("/api/")) {
-        return Response.json({ error: "Unauthorized" }, { status: 401 });
+        return Response.json(
+          {
+            success: false,
+            message: "Authentication required. Please sign in to access this resource.",
+            error: "Unauthorized",
+          },
+          { status: 401 }
+        );
       }
       return redirectToSignIn({ returnBackUrl: request.url });
     }

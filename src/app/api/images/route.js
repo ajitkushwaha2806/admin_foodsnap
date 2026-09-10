@@ -1,11 +1,24 @@
 import dbConnect from "@/lib/dbConnect";
 import ImageModel from "@/models/Image";
 import { NextResponse } from "next/server";
+import { invalidateSearchCache } from "@/lib/redis";
 
 export async function GET(request) {
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
+
+    const id = searchParams.get("id") || searchParams.get("imageId");
+    if (id) {
+      const image = await ImageModel.findById(id).lean();
+      if (!image) {
+        return NextResponse.json(
+          { success: false, error: "Image not found" },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ success: true, data: image });
+    }
 
     const search = searchParams.get("search") || "";
     const approved = searchParams.get("approved");
@@ -85,7 +98,7 @@ export async function POST(request) {
     }
 
     const newImage = await ImageModel.create(body);
-
+    await invalidateSearchCache();
     return NextResponse.json({
       success: true,
       message: "Image created successfully",

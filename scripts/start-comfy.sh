@@ -63,7 +63,9 @@ cd "$COMFY_DIR"
 
 echo "⚡ Launching ComfyUI with Apple Silicon unified memory optimizations..."
 exec "$PYTHON_BIN" main.py \
+  --highvram \
   --fp8_e4m3fn-text-enc \
+  --preview-method none \
   --enable-cors-header \
   --listen 127.0.0.1 \
   --port 8188 \

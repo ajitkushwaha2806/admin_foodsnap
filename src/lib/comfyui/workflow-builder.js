@@ -672,11 +672,11 @@ export function buildComboMealWorkflowPrompt({
 }
 
 export const DEFAULT_WORKFLOW_CONFIG = {
-  serverUrl: "http://127.0.0.1:8188",
+  serverUrl: process.env.NEXT_PUBLIC_COMFYUI_SERVER_URL || "http://13.55.57.70:8188",
   promptTemplate:
     "Replace the background and surface of reference_image1 with the wooden table and mat background from reference_image2. Keep the main dish, bowls, and garnishes sharp, delicious, and intact with studio food lighting.",
-  subjectMegapixels: 0.45,
-  backgroundMegapixels: 0.30,
+  subjectMegapixels: 0.50,
+  backgroundMegapixels: 0.28,
   secondaryMegapixels: 0.35,
   clipName: "qwen_3_4b.safetensors",
   vaeName: "full_encoder_small_decoder.safetensors",

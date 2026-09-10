@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
 import axios from "axios";
 import crypto from "crypto";
 import dbConnect from "@/lib/dbConnect";
 import ImageModel from "@/models/Image";
+import { NextResponse } from "next/server";
 import { uploadToS3 } from "@/lib/aws/uploadToS3";
+import { invalidateSearchCache } from "@/lib/redis";
+import { optimizeBufferToAvif } from "@/lib/image-optimizer/optimizer";
 
 export async function POST(request) {
   try {
@@ -12,7 +14,9 @@ export async function POST(request) {
     const {
       dishData = {},
       outputFilename,
-      serverUrl = "http://127.0.0.1:8188",
+      serverUrl = process.env.COMFYUI_SERVER_URL ||
+        process.env.NEXT_PUBLIC_COMFYUI_SERVER_URL ||
+        "http://13.55.57.70:8188",
       subfolder = "",
       type = "output",
       executionTimeSec = 0,
@@ -26,7 +30,6 @@ export async function POST(request) {
       );
     }
 
-    // Step 1: Fetch generated output image buffer from ComfyUI
     const cleanBase = serverUrl.replace(/\/$/, "");
     const comfyViewUrl = `${cleanBase}/view?filename=${encodeURIComponent(
       outputFilename
@@ -37,34 +40,43 @@ export async function POST(request) {
       timeout: 30000,
     });
     const buffer = Buffer.from(imgResponse.data);
-    const contentType = imgResponse.headers["content-type"] || "image/png";
 
-    // Step 2: Upload to AWS S3
-    const s3FileName = `foodsnap/processed/ai-processed-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.png`;
-    const s3Result = await uploadToS3(buffer, s3FileName, contentType);
+    const title = dishData.title || dishData.name || outputFilename.replace(/\.[^/.]+$/, "");
+    const tags = Array.isArray(dishData.tags) ? dishData.tags : [];
+    const cuisine = dishData.cuisine || "";
+    const category = dishData.category || "";
+    const sub_category = dishData.sub_category || dishData.subcategory || "";
+    const food_type = dishData.food_type || dishData.foodType || "Veg";
 
-    // Step 3: Prepare Tags and Categorization
-    const title = dishData.title || dishData.name || "AI Processed Dish";
-    const category = dishData.category || "Main Course";
-    const sub_category = dishData.sub_category || category;
-    const food_type = dishData.food_type || dishData.dietaryType || "unknown";
-    const cuisine = dishData.cuisine || category;
+    const originalContentType = imgResponse.headers["content-type"] || "image/png";
+    const originalExt = originalContentType.includes("jpeg") || originalContentType.includes("jpg") ? "jpg" : "png";
 
-    const rawTags = Array.isArray(dishData.tags) && dishData.tags.length > 0
-      ? dishData.tags
-      : [title, category, sub_category, food_type, cuisine]
-          .filter(Boolean)
-          .flatMap((t) => t.toLowerCase().split(/[\s,]+/));
+    // 1. Upload AI-processed master image directly to processed/ (no raw/ folder)
+    const processedS3Key = `processed/comfy-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${originalExt}`;
+    const processedResult = await uploadToS3(buffer, processedS3Key, originalContentType);
 
-    const tags = Array.from(new Set(rawTags.filter((t) => t.length > 1)));
+    // 2. Convert to AVIF and store in optimised/
+    let optimisedUrl = null;
+    let isOptimized = false;
 
-    // Step 4: Save to MongoDB Image Model with approved: false, premium: false
+    try {
+      const { buffer: avifBuffer } = await optimizeBufferToAvif(buffer);
+      const optimisedS3Key = `optimised/comfy-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.avif`;
+      const optResult = await uploadToS3(avifBuffer, optimisedS3Key, "image/avif");
+      optimisedUrl = optResult.url;
+      isOptimized = true;
+    } catch (optErr) {
+      console.warn("AVIF conversion warning in processor complete:", optErr.message);
+    }
+
     const newImage = await ImageModel.create({
       title: title.trim(),
       description: dishData.description || customPrompt || `AI generated food photography for ${title}`,
       tags,
       cuisine: cuisine.trim(),
-      image_url: s3Result.url,
+      image_url: processedResult.url,
+      optimised_image_url: optimisedUrl || processedResult.url,
+      is_optimized: isOptimized,
       approved: false,
       premium: false,
       category: category.trim(),
@@ -74,10 +86,11 @@ export async function POST(request) {
       latest: false,
     });
 
+    await invalidateSearchCache();
     return NextResponse.json({
       success: true,
       image: newImage,
-      s3Url: s3Result.url,
+      imageUrl: s3Result.url,
       executionTimeSec,
     });
   } catch (error) {

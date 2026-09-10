@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import crypto from "crypto";
 import dbConnect from "@/lib/dbConnect";
+import { NextResponse } from "next/server";
 import Background from "@/models/Background";
 import { uploadToS3 } from "@/lib/aws/uploadToS3";
 

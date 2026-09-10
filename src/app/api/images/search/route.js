@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/dbConnect";
 import ImageModel from "@/models/Image";
 import { NextResponse } from "next/server";
+import { getCache, setCache, generateSearchCacheKey, SEARCH_CACHE_TTL_SEC } from "@/lib/redis";
 
 const getFilterValue = (searchParams, key, type = "string") => {
     const value = searchParams.get(key);
@@ -31,8 +32,6 @@ const getFilterValue = (searchParams, key, type = "string") => {
 
 export async function GET(request) {
     try {
-        await dbConnect();
-
         const { searchParams } = new URL(request.url);
         const search = searchParams.get("search")?.trim() || "";
         const page = Math.max(
@@ -52,6 +51,44 @@ export async function GET(request) {
         const approved = getFilterValue(searchParams, "approved", "boolean");
         const category = getFilterValue(searchParams, "category", "string");
         const foodType = getFilterValue(searchParams, "food_type", "string") || getFilterValue(searchParams, "foodType", "string");
+        const latest = getFilterValue(searchParams, "latest", "boolean");
+        const premium = getFilterValue(searchParams, "premium", "boolean");
+        const subCategory = getFilterValue(searchParams, "sub_category", "string");
+        const cuisine = getFilterValue(searchParams, "cuisine", "string");
+        const tags = getFilterValue(searchParams, "tags", "tags");
+
+        const cacheKey = generateSearchCacheKey({
+            search,
+            page,
+            limit,
+            approved,
+            category,
+            food_type: foodType,
+            latest,
+            premium,
+            sub_category: subCategory,
+            cuisine,
+            tags: tags ? tags.join(",") : undefined,
+        });
+
+        const cachedData = await getCache(cacheKey);
+        if (cachedData) {
+            return NextResponse.json(
+                {
+                    ...cachedData,
+                    message: cachedData.message
+                        ? `${cachedData.message} (cached)`
+                        : "Images fetched successfully (cached)",
+                },
+                {
+                    headers: {
+                        "X-Cache": "HIT",
+                    },
+                }
+            );
+        }
+
+        await dbConnect();
 
         const atlasFilters = [];
         if (approved !== undefined) {
@@ -234,6 +271,7 @@ export async function GET(request) {
                             _id: 1,
                             name: { $ifNull: ["$title", "$name"] },
                             image_url: 1,
+                            optimised_image_url: 1,
                         },
                     },
                 ],
@@ -253,18 +291,22 @@ export async function GET(request) {
         const totalCount =
             result?.metadata?.[0]?.total || 0;
 
-        return NextResponse.json({
+        const responsePayload = {
             success: true,
-
+            message: "Images fetched successfully",
             data: images,
-
             pagination: {
                 total: totalCount,
                 page,
                 limit,
-                totalPages: Math.ceil(
-                    totalCount / limit
-                ),
+                totalPages: Math.ceil(totalCount / limit),
+            },
+        };
+
+        await setCache(cacheKey, responsePayload, SEARCH_CACHE_TTL_SEC);
+        return NextResponse.json(responsePayload, {
+            headers: {
+                "X-Cache": "MISS",
             },
         });
     } catch (error) {

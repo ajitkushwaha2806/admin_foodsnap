@@ -7,7 +7,11 @@ export async function GET(request) {
     const filename = searchParams.get("filename");
     const subfolder = searchParams.get("subfolder") || "";
     const type = searchParams.get("type") || "output";
-    const serverUrl = searchParams.get("serverUrl") || "http://127.0.0.1:8188";
+    const serverUrl =
+      searchParams.get("serverUrl") ||
+      process.env.COMFYUI_SERVER_URL ||
+      process.env.NEXT_PUBLIC_COMFYUI_SERVER_URL ||
+      "http://13.55.57.70:8188";
 
     if (!filename) {
       return NextResponse.json({ error: "Filename parameter is required" }, { status: 400 });

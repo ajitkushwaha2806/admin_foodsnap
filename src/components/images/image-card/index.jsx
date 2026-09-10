@@ -70,7 +70,6 @@ export function ImageCard({ image, onRefresh }) {
             loading="lazy"
           />
 
-          {/* Top Status Badges */}
           <div className="absolute top-2 left-2 flex items-center gap-1.5 flex-wrap">
             <Badge
               variant={isApproved ? "default" : "secondary"}

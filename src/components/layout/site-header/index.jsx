@@ -7,6 +7,8 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ZomatoScraperPopover } from "@/components/zomato/scraper-popover";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
+import { GpuController } from "@/components/studio/gpu-controller";
+
 export function SiteHeader({ title, children }) {
   const pathname = usePathname();
 
@@ -41,6 +43,7 @@ export function SiteHeader({ title, children }) {
 
       <div className="flex items-center gap-3">
         {children}
+        <GpuController />
         <ZomatoScraperPopover buttonSize="sm" />
       </div>
     </header>

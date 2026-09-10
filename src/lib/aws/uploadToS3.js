@@ -1,6 +1,6 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 
-const s3Client = new S3Client({
+export const s3Client = new S3Client({
     region: process.env.AWS_REGION || "ap-southeast-2",
     credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -49,6 +49,21 @@ export async function uploadToS3(file, fileName, contentType = "image/jpeg") {
         url,
         key: fileName,
     };
+}
+
+export async function getObjectFromS3(key, bucket = process.env.AWS_S3_BUCKET) {
+    if (!bucket) {
+        throw new Error("AWS_S3_BUCKET is not defined");
+    }
+
+    const command = new GetObjectCommand({
+        Bucket: bucket,
+        Key: key,
+    });
+
+    const response = await s3Client.send(command);
+    const byteArray = await response.Body.transformToByteArray();
+    return Buffer.from(byteArray);
 }
 
 export default uploadToS3;

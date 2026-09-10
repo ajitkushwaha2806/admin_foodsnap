@@ -32,6 +32,12 @@ const navItems = [
     badge: "AI",
   },
   {
+    title: "Queue Dashboard",
+    url: "/jobs",
+    icon: Layers,
+    badge: "BullMQ",
+  },
+  {
     title: "Image Manager",
     url: "/images",
     icon: Images,

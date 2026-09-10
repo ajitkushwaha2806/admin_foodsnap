@@ -5,7 +5,11 @@ export async function GET(request, { params }) {
   try {
     const { promptId } = await params;
     const searchParams = request.nextUrl.searchParams;
-    const serverUrl = searchParams.get("serverUrl") || "http://127.0.0.1:8188";
+    const serverUrl =
+      searchParams.get("serverUrl") ||
+      process.env.COMFYUI_SERVER_URL ||
+      process.env.NEXT_PUBLIC_COMFYUI_SERVER_URL ||
+      "http://13.55.57.70:8188";
 
     const historyUrl = `${serverUrl.replace(/\/$/, "")}/history/${promptId}`;
 

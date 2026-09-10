@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
 import crypto from "crypto";
 import dbConnect from "@/lib/dbConnect";
 import ImageModel from "@/models/Image";
+import { NextResponse } from "next/server";
 import { uploadToS3 } from "@/lib/aws/uploadToS3";
+import { invalidateSearchCache } from "@/lib/redis";
 import { analyzeFoodImageWithNova } from "@/lib/bedrock/image-analyzer";
 
-export const maxDuration = 60; // Allow up to 60s for AI inference & S3 upload
-
+export const maxDuration = 60;
 export async function POST(request) {
   try {
     await dbConnect();
@@ -25,7 +25,6 @@ export async function POST(request) {
     const buffer = Buffer.from(arrayBuffer);
     const contentType = file.type || "image/png";
 
-    // Step 1: AI Vision analysis with Amazon Bedrock Nova
     let aiMetadata;
     try {
       aiMetadata = await analyzeFoodImageWithNova(buffer, contentType);
@@ -43,18 +42,32 @@ export async function POST(request) {
       };
     }
 
-    // Step 2: Upload original image buffer to S3 (foodsnap-studio bucket)
     const fileExt = contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg" : "png";
-    const s3FileName = `foodsnap/processed/ai-processed-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${fileExt}`;
-    const s3Result = await uploadToS3(buffer, s3FileName, contentType);
+    const processedS3Key = `processed/upload-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.${fileExt}`;
+    const s3Result = await uploadToS3(buffer, processedS3Key, contentType);
 
-    // Step 3: Save to MongoDB Image model matching exact schema
+    // Convert to AVIF and save to optimised/
+    let optimisedUrl = null;
+    let isOptimized = false;
+    try {
+      const { optimizeBufferToAvif } = await import("@/lib/image-optimizer/optimizer");
+      const { buffer: avifBuffer } = await optimizeBufferToAvif(buffer);
+      const optS3Key = `optimised/upload-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.avif`;
+      const optResult = await uploadToS3(avifBuffer, optS3Key, "image/avif");
+      optimisedUrl = optResult.url;
+      isOptimized = true;
+    } catch (optErr) {
+      console.warn("AVIF conversion warning in bulk upload:", optErr.message);
+    }
+
     const newImage = await ImageModel.create({
       title: aiMetadata.title,
       description: aiMetadata.description,
       tags: aiMetadata.tags,
       cuisine: aiMetadata.cuisine,
-      image_url: s3Result.url,
+      image_url: s3Result.url, 
+      optimised_image_url: optimisedUrl || s3Result.url,
+      is_optimized: isOptimized,
       approved: false,
       premium: false,
       category: aiMetadata.category,
@@ -64,11 +77,12 @@ export async function POST(request) {
       latest: false,
     });
 
+    await invalidateSearchCache();
     return NextResponse.json({
       success: true,
       data: newImage,
       analysis: aiMetadata,
-      s3Url: s3Result.url,
+      imageUrl: s3Result.url,
     });
   } catch (error) {
     console.error("Bulk image upload & Bedrock analysis error:", error);
